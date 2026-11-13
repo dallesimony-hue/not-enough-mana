@@ -1,0 +1,9 @@
+const test=require('node:test');const assert=require('node:assert/strict');const G=require('../game');
+function setup(){const r=G.createRoom('ABC123');const a=G.addPlayer(r,'Alice','a'),b=G.addPlayer(r,'Bob','b');a.ready=b.ready=true;G.start(r);return {r,a,b}}
+test('requires two ready players',()=>{const r=G.createRoom('ABC');const a=G.addPlayer(r,'A','a');assert.throws(()=>G.start(r));G.addPlayer(r,'B','b');assert.throws(()=>G.start(r));r.players.forEach(p=>p.ready=true);G.start(r);assert.equal(r.phase,'playing')});
+test('initial hands are private',()=>{const {r,a,b}=setup();assert.equal(a.hand.length,5);assert.equal(b.hand.length,5);const view=G.publicState(r,a);assert.equal(view.self.hand.length,5);assert.equal(view.players[1].hand,undefined)});
+test('cannot act out of turn',()=>{const {r,b}=setup();assert.throws(()=>G.act(r,b,{type:'end'}),/ikke din tur/)});
+test('potion once per turn, reset on next turn',()=>{const {r,a,b}=setup();G.act(r,a,{type:'potion'});assert.throws(()=>G.act(r,a,{type:'potion'}));G.act(r,a,{type:'end'});G.act(r,b,{type:'end'});assert.equal(a.potionUsed,false)});
+test('invalid card and target rejected without spending mana',()=>{const {r,a}=setup();const before=a.mana;assert.throws(()=>G.act(r,a,{type:'play',card:'fake',target:'fake'}));assert.equal(a.mana,before)});
+test('end turn draws and restores mana',()=>{const {r,a,b}=setup();G.act(r,a,{type:'end'});assert.equal(r.turn,1);assert.equal(b.hand.length,6);assert.equal(b.mana,5)});
+test('shield absorbs damage and elimination ends game',()=>{const {r,a,b}=setup();b.shield=2;b.hp=2;a.hand.push({id:'bolt',instance:'special',type:'attack',cost:2,name:'bolt',power:4});G.act(r,a,{type:'play',card:'special',target:b.id});assert.equal(b.hp,0);assert.equal(r.phase,'finished');assert.equal(r.winner,a.id)});
