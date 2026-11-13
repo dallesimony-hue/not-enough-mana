@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: not-enough-mana
-    runtime: node
-    plan: free
-    buildCommand: npm install
-    startCommand: npm start
-    healthCheckPath: /health
